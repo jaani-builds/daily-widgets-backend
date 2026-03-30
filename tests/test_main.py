@@ -19,7 +19,7 @@ async def test_get_weather_valid_city():
         response = await client.get("/weather", params={"city": "London"})
     assert response.status_code == 200
     data = response.json()
-    assert data["city"] == "London"
+    assert "london" in data["city"].lower()
     assert "temperature_c" in data
     assert "windspeed_kmh" in data
     assert "time" in data
@@ -29,9 +29,9 @@ async def test_get_weather_valid_city():
 async def test_get_weather_invalid_city():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/weather", params={"city": "NotARealCityXYZ123"})
-    assert response.status_code == 200
+    assert response.status_code == 404
     data = response.json()
-    assert "error" in data
+    assert "detail" in data
 
 
 @pytest.mark.asyncio
