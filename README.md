@@ -1,9 +1,11 @@
 # Simple API App
 
-A small FastAPI service with two endpoints:
+A small FastAPI service with three endpoints:
 
 - `GET /time`: Returns the current UTC time.
 - `GET /weather?city=<name>`: Returns current weather for a city using Open-Meteo.
+- `GET /exchange-rates?base=USD&target=EUR`: Returns the latest exchange rate.
+- `GET /exchange-rates?base=USD&target=EUR&period_value=7&period_unit=days`: Returns historical exchange-rate data for a trailing period.
 
 Live deployment:
 
@@ -41,6 +43,56 @@ Response example:
 }
 ```
 
+### `GET /exchange-rates?base=USD&target=EUR`
+
+Response example:
+
+```json
+{
+  "base": "USD",
+  "target": "EUR",
+  "date": "2026-03-30",
+  "rate": 0.92
+}
+```
+
+### `GET /exchange-rates?base=USD&target=EUR&period_value=7&period_unit=days`
+
+Valid `period_unit` values:
+
+- `days`
+- `months`
+- `years`
+
+Response example:
+
+```json
+{
+  "base": "USD",
+  "target": "EUR",
+  "period": {
+    "value": 7,
+    "unit": "days",
+    "start_date": "2026-03-23",
+    "end_date": "2026-03-30"
+  },
+  "rates": [
+    {
+      "date": "2026-03-28",
+      "rate": 0.91
+    },
+    {
+      "date": "2026-03-29",
+      "rate": 0.92
+    },
+    {
+      "date": "2026-03-30",
+      "rate": 0.93
+    }
+  ]
+}
+```
+
 ## Run Locally (Without Docker)
 
 ```bash
@@ -53,6 +105,8 @@ Open:
 - `http://localhost:8000/docs`
 - `http://localhost:8000/time`
 - `http://localhost:8000/weather?city=London`
+- `http://localhost:8000/exchange-rates?base=USD&target=EUR`
+- `http://localhost:8000/exchange-rates?base=USD&target=EUR&period_value=30&period_unit=days`
 
 ## Run With Docker
 
@@ -95,9 +149,12 @@ After deployment, use:
 
 - `https://simple-api-app.onrender.com/time`
 - `https://simple-api-app.onrender.com/weather?city=London`
+- `https://simple-api-app.onrender.com/exchange-rates?base=USD&target=EUR`
+- `https://simple-api-app.onrender.com/exchange-rates?base=USD&target=EUR&period_value=3&period_unit=months`
 - `https://simple-api-app.onrender.com/docs`
 
 ## Notes
 
 - Free Render services spin down after inactivity.
 - Weather data is fetched from Open-Meteo APIs.
+- Exchange-rate data is fetched from Frankfurter.
