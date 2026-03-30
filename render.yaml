@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: simple-api-app
+    env: docker
+    dockerfilePath: ./Dockerfile.prod
+    plan: free
+    healthCheckPath: /time

@@ -1,0 +1,13 @@
+# Corporate / local CA certs — never commit these
+ca-bundle.pem
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+
+# Pytest
+.pytest_cache/
