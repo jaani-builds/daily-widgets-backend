@@ -25,6 +25,7 @@ async def fetch_current_weather(client: httpx.AsyncClient, latitude: float, long
             "latitude": latitude,
             "longitude": longitude,
             "current_weather": True,
+            "timezone": "auto",
         },
     )
     response.raise_for_status()
@@ -35,7 +36,11 @@ async def fetch_current_weather(client: httpx.AsyncClient, latitude: float, long
             status_code=502,
             detail="Weather provider did not return current weather data",
         )
-    return current_weather
+    return {
+        "current_weather": current_weather,
+        "timezone": payload.get("timezone"),
+        "timezone_abbreviation": payload.get("timezone_abbreviation"),
+    }
 
 
 async def get_weather_fallback(client: httpx.AsyncClient, city: str):
@@ -55,4 +60,6 @@ async def get_weather_fallback(client: httpx.AsyncClient, city: str):
         "temperature_c": float(temp_raw) if temp_raw is not None else None,
         "windspeed_kmh": float(wind_raw) if wind_raw is not None else None,
         "time": utc_timestamp(),
+        "local_time": utc_timestamp(),
+        "timezone": "UTC",
     }

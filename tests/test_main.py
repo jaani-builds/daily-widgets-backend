@@ -25,6 +25,8 @@ async def test_get_weather_valid_city():
     assert "temperature_c" in data
     assert "windspeed_kmh" in data
     assert "time" in data
+    assert "local_time" in data
+    assert "timezone" in data
 
 
 @pytest.mark.asyncio
@@ -94,6 +96,8 @@ async def test_get_exchange_rate_historical(monkeypatch):
     assert data["target"] == "EUR"
     assert data["period"]["value"] == 7
     assert data["period"]["unit"] == "days"
+    assert "start_at" in data["period"]
+    assert "end_at" in data["period"]
     assert len(data["rates"]) == 3
     assert data["rates"][0] == {"date": "2026-03-28", "rate": 0.91}
 

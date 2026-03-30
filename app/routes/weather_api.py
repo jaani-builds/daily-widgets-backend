@@ -15,7 +15,7 @@ async def get_weather(city: str = Query(..., description="City name")):
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             result = await fetch_city_coordinates(client, city)
-            w = await fetch_current_weather(client, result["latitude"], result["longitude"])
+            weather_payload = await fetch_current_weather(client, result["latitude"], result["longitude"])
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Weather provider timed out") from None
     except httpx.HTTPStatusError as exc:
@@ -32,10 +32,15 @@ async def get_weather(city: str = Query(..., description="City name")):
     except httpx.RequestError:
         raise HTTPException(status_code=502, detail="Could not reach weather provider") from None
 
+    current_weather = weather_payload["current_weather"]
+
     return {
         "city": result["name"],
         "country": result.get("country"),
-        "temperature_c": w["temperature"],
-        "windspeed_kmh": w["windspeed"],
-        "time": w["time"],
+        "temperature_c": current_weather["temperature"],
+        "windspeed_kmh": current_weather["windspeed"],
+        "time": current_weather["time"],
+        "local_time": current_weather["time"],
+        "timezone": weather_payload.get("timezone") or result.get("timezone"),
+        "timezone_abbreviation": weather_payload.get("timezone_abbreviation"),
     }

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, Optional
 
 import httpx
@@ -11,6 +11,10 @@ from app.services.exchange_rate_service import (
 from app.utils.date_utils import get_period_start
 
 router = APIRouter()
+
+
+def to_utc_minute_timestamp(value: datetime) -> str:
+    return value.replace(second=0, microsecond=0, tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 @router.get("/exchange-rates")
@@ -40,19 +44,23 @@ async def get_exchange_rates(
             detail="period_value and period_unit must be provided together",
         )
 
-    end_date = datetime.utcnow().date()
+    end_at = datetime.utcnow().replace(second=0, microsecond=0)
+    end_date = end_at.date()
 
     if base == target:
         if period_value is None:
             return {"base": base, "target": target, "date": end_date.isoformat(), "rate": 1.0}
 
-        start_date = get_period_start(end_date, period_value, period_unit)
+        start_at = get_period_start(end_at, period_value, period_unit)
+        start_date = start_at.date()
         return {
             "base": base,
             "target": target,
             "period": {
                 "value": period_value,
                 "unit": period_unit,
+                "start_at": to_utc_minute_timestamp(start_at),
+                "end_at": to_utc_minute_timestamp(end_at),
                 "start_date": start_date.isoformat(),
                 "end_date": end_date.isoformat(),
             },
@@ -77,7 +85,8 @@ async def get_exchange_rates(
                     "rate": rate,
                 }
 
-            start_date = get_period_start(end_date, period_value, period_unit)
+            start_at = get_period_start(end_at, period_value, period_unit)
+            start_date = start_at.date()
             payload = await fetch_historical_exchange_rates(client, base, target, start_date, end_date)
             raw_rates = payload.get("rates", {})
             history = [
@@ -94,6 +103,8 @@ async def get_exchange_rates(
                 "period": {
                     "value": period_value,
                     "unit": period_unit,
+                    "start_at": to_utc_minute_timestamp(start_at),
+                    "end_at": to_utc_minute_timestamp(end_at),
                     "start_date": start_date.isoformat(),
                     "end_date": end_date.isoformat(),
                 },
