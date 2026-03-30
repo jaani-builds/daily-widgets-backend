@@ -1,8 +1,30 @@
 from fastapi import FastAPI, HTTPException, Query
 from datetime import datetime
 import httpx
+from urllib.parse import quote
 
 app = FastAPI()
+
+
+async def get_weather_fallback(client: httpx.AsyncClient, city: str):
+    # Fallback provider for rate-limit scenarios on the primary API.
+    fallback = await client.get(f"https://wttr.in/{quote(city)}", params={"format": "j1"})
+    fallback.raise_for_status()
+    payload = fallback.json()
+    current = payload.get("current_condition", [{}])[0]
+    if not current:
+        raise HTTPException(status_code=502, detail="Fallback weather provider returned no data")
+
+    temp_raw = current.get("temp_C")
+    wind_raw = current.get("windspeedKmph")
+
+    return {
+        "city": city,
+        "country": None,
+        "temperature_c": float(temp_raw) if temp_raw is not None else None,
+        "windspeed_kmh": float(wind_raw) if wind_raw is not None else None,
+        "time": datetime.utcnow().isoformat() + "Z",
+    }
 
 
 @app.get("/time")
@@ -45,6 +67,12 @@ async def get_weather(city: str = Query(..., description="City name")):
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Weather provider timed out") from None
     except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 429:
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    return await get_weather_fallback(client, city)
+            except (httpx.RequestError, httpx.HTTPStatusError):
+                pass
         raise HTTPException(
             status_code=502,
             detail=f"Weather provider error: {exc.response.status_code}",
