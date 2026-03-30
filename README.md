@@ -5,6 +5,10 @@ A small FastAPI service with two endpoints:
 - `GET /time`: Returns the current UTC time.
 - `GET /weather?city=<name>`: Returns current weather for a city using Open-Meteo.
 
+Live deployment:
+
+- `https://simple-api-app.onrender.com/`
+
 ## Tech Stack
 
 - Python + FastAPI
@@ -89,9 +93,9 @@ This repo includes `render.yaml` and `Dockerfile.prod`.
 
 After deployment, use:
 
-- `/time`
-- `/weather?city=London`
-- `/docs`
+- `https://simple-api-app.onrender.com/time`
+- `https://simple-api-app.onrender.com/weather?city=London`
+- `https://simple-api-app.onrender.com/docs`
 
 ## Notes
 
