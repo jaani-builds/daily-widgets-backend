@@ -24,10 +24,10 @@ async def get_exchange_rates(
     period_value: Optional[int] = Query(
         None,
         ge=1,
-        le=365,
+        le=525600,
         description="Historical lookback amount. Use together with period_unit.",
     ),
-    period_unit: Optional[Literal["days", "months", "years"]] = Query(
+    period_unit: Optional[Literal["minutes", "days", "months", "years"]] = Query(
         None,
         description="Historical lookback unit. Use together with period_value.",
     ),

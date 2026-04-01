@@ -20,8 +20,10 @@ def subtract_years(input_datetime: datetime, years: int) -> datetime:
 def get_period_start(
     end_datetime: datetime,
     period_value: int,
-    period_unit: Literal["days", "months", "years"],
+    period_unit: Literal["minutes", "days", "months", "years"],
 ) -> datetime:
+    if period_unit == "minutes":
+        return end_datetime - timedelta(minutes=period_value)
     if period_unit == "days":
         return end_datetime - timedelta(days=period_value)
     if period_unit == "months":

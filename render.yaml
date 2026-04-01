@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: simple-api-app
+    name: daily-widgets-backend
     env: docker
     dockerfilePath: ./Dockerfile.prod
     plan: free

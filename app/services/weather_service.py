@@ -6,16 +6,65 @@ from fastapi import HTTPException
 from app.utils.time_utils import utc_timestamp
 
 
+_GEOCODING_QUERY_ALIASES = {
+    "united states of america": "united states",
+    "usa": "united states",
+    "u.s.a.": "united states",
+}
+
+
+def _normalize_location_text(value: str) -> str:
+    return " ".join((value or "").strip().lower().split())
+
+
+def _build_geocoding_queries(query: str) -> list[str]:
+    normalized = _normalize_location_text(query)
+    if not normalized:
+        return []
+
+    alias = _GEOCODING_QUERY_ALIASES.get(normalized)
+    if alias:
+        return [alias, query.strip()]
+    return [query.strip()]
+
+
+def _pick_best_geocoding_result(results: list[dict], query: str) -> dict:
+    normalized_query = _normalize_location_text(query)
+    if not results:
+        return {}
+
+    # Prefer exact country-name and city-name matches before fuzzy candidates.
+    for result in results:
+        if _normalize_location_text(result.get("country", "")) == normalized_query:
+            return result
+
+    for result in results:
+        if _normalize_location_text(result.get("name", "")) == normalized_query:
+            return result
+
+    for result in results:
+        country = _normalize_location_text(result.get("country", ""))
+        name = _normalize_location_text(result.get("name", ""))
+        admin1 = _normalize_location_text(result.get("admin1", ""))
+        if normalized_query in {country, name, admin1}:
+            return result
+
+    return results[0]
+
+
 async def fetch_city_coordinates(client: httpx.AsyncClient, city: str):
-    response = await client.get(
-        "https://geocoding-api.open-meteo.com/v1/search",
-        params={"name": city, "count": 1},
-    )
-    response.raise_for_status()
-    payload = response.json()
-    if not payload.get("results"):
-        raise HTTPException(status_code=404, detail=f"City '{city}' not found")
-    return payload["results"][0]
+    for query in _build_geocoding_queries(city):
+        response = await client.get(
+            "https://geocoding-api.open-meteo.com/v1/search",
+            params={"name": query, "count": 10, "language": "en"},
+        )
+        response.raise_for_status()
+        payload = response.json()
+        results = payload.get("results") or []
+        if results:
+            return _pick_best_geocoding_result(results, city)
+
+    raise HTTPException(status_code=404, detail=f"City '{city}' not found")
 
 
 async def fetch_current_weather(client: httpx.AsyncClient, latitude: float, longitude: float):

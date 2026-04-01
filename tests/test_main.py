@@ -2,7 +2,10 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 
 import app.routes.exchange_rates_api as exchange_rates_api
+import app.routes.location_profile_api as location_profile_api
+import app.routes.news_api as news_api
 from app.main import app
+from app.services.weather_service import _build_geocoding_queries, _pick_best_geocoding_result
 
 
 @pytest.mark.asyncio
@@ -43,6 +46,42 @@ async def test_get_weather_missing_city():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/weather")
     assert response.status_code == 422  # FastAPI validation error
+
+
+def test_pick_best_geocoding_result_prefers_exact_country_match():
+    results = [
+        {"name": "Iranshahr", "country": "Iran", "latitude": 27.2, "longitude": 60.7},
+        {"name": "Tehran", "country": "Iran", "latitude": 35.7, "longitude": 51.4},
+    ]
+
+    picked = _pick_best_geocoding_result(results, "iran")
+    assert picked["country"] == "Iran"
+
+
+def test_pick_best_geocoding_result_handles_multi_word_country_name():
+    results = [
+        {
+            "name": "United",
+            "country": "Liberia",
+            "latitude": 6.3,
+            "longitude": -10.7,
+        },
+        {
+            "name": "Washington",
+            "country": "United States of America",
+            "latitude": 38.9,
+            "longitude": -77.0,
+        },
+    ]
+
+    picked = _pick_best_geocoding_result(results, "united states of america")
+    assert picked["country"] == "United States of America"
+
+
+def test_build_geocoding_queries_adds_united_states_alias():
+    queries = _build_geocoding_queries("united states of america")
+    assert queries[0] == "united states"
+    assert "united states of america" in queries
 
 
 @pytest.mark.asyncio
@@ -109,3 +148,98 @@ async def test_get_exchange_rate_requires_complete_period():
 
     assert response.status_code == 400
     assert response.json()["detail"] == "period_value and period_unit must be provided together"
+
+
+@pytest.mark.asyncio
+async def test_get_exchange_rate_historical_minutes(monkeypatch):
+    async def mock_fetch_historical_exchange_rates(client, base, target, start_date, end_date):
+        assert base == "USD"
+        assert target == "EUR"
+        assert start_date <= end_date
+        return {
+            "amount": 1.0,
+            "base": "USD",
+            "rates": {
+                "2026-03-30": {"EUR": 0.93},
+            },
+        }
+
+    monkeypatch.setattr(
+        exchange_rates_api,
+        "fetch_historical_exchange_rates",
+        mock_fetch_historical_exchange_rates,
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get(
+            "/exchange-rates",
+            params={"base": "USD", "target": "EUR", "period_value": 90, "period_unit": "minutes"},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["period"]["unit"] == "minutes"
+    assert "start_at" in data["period"]
+    assert "end_at" in data["period"]
+
+
+@pytest.mark.asyncio
+async def test_get_news_success(monkeypatch):
+    async def mock_fetch_top_news(client, city, country=None, limit=10):
+        assert city == "Dublin"
+        assert country == "Ireland"
+        assert limit == 5
+        return [
+            {
+                "title": "Headline 1",
+                "url": "https://example.com/1",
+                "source": "News",
+                "published_at": "2026-03-30T10:00:00Z",
+            }
+        ]
+
+    monkeypatch.setattr(news_api, "fetch_top_news", mock_fetch_top_news)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/news", params={"city": "Dublin", "country": "Ireland", "limit": 5})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["city"] == "Dublin"
+    assert data["country"] == "Ireland"
+    assert data["count"] == 1
+    assert data["articles"][0]["title"] == "Headline 1"
+
+
+@pytest.mark.asyncio
+async def test_get_news_missing_city():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/news")
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_get_location_profile_defaults(monkeypatch):
+    async def mock_build_location_profile(city, country=None):
+        assert city == "Dublin"
+        assert country == "Ireland"
+        return {"currency_code": "EUR"}
+
+    monkeypatch.setattr(location_profile_api, "build_location_profile", mock_build_location_profile)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/location-profile", params={"city": "Dublin", "country": "Ireland"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["currency_code"] == "EUR"
+    assert "gifs" not in data
+
+
+@pytest.mark.asyncio
+async def test_get_location_profile_missing_city():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/location-profile")
+
+    assert response.status_code == 422

@@ -1,4 +1,4 @@
-# Simple API App
+# Daily Widgets Backend
 
 A small FastAPI service with three endpoints:
 
@@ -9,7 +9,7 @@ A small FastAPI service with three endpoints:
 
 Live deployment:
 
-- `https://simple-api-app.onrender.com/`
+- `https://daily-widgets-backend.onrender.com/`
 
 ## Tech Stack
 
@@ -113,20 +113,20 @@ Open:
 Build image:
 
 ```bash
-docker build -t simple-api-app .
+docker build -t daily-widgets-backend .
 ```
 
 Run container:
 
 ```bash
-docker run -d -p 8000:8000 --name simple-api-app simple-api-app
+docker run -d -p 8000:8000 --name daily-widgets-backend daily-widgets-backend
 ```
 
 Stop/remove container:
 
 ```bash
-docker stop simple-api-app
-docker rm simple-api-app
+docker stop daily-widgets-backend
+docker rm daily-widgets-backend
 ```
 
 ## Tests
@@ -147,11 +147,11 @@ This repo includes `render.yaml` and `Dockerfile.prod`.
 
 After deployment, use:
 
-- `https://simple-api-app.onrender.com/time`
-- `https://simple-api-app.onrender.com/weather?city=London`
-- `https://simple-api-app.onrender.com/exchange-rates?base=USD&target=EUR`
-- `https://simple-api-app.onrender.com/exchange-rates?base=USD&target=EUR&period_value=3&period_unit=months`
-- `https://simple-api-app.onrender.com/docs`
+- `https://daily-widgets-backend.onrender.com/time`
+- `https://daily-widgets-backend.onrender.com/weather?city=London`
+- `https://daily-widgets-backend.onrender.com/exchange-rates?base=USD&target=EUR`
+- `https://daily-widgets-backend.onrender.com/exchange-rates?base=USD&target=EUR&period_value=3&period_unit=months`
+- `https://daily-widgets-backend.onrender.com/docs`
 
 ## Notes
 
