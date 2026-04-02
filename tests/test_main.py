@@ -185,8 +185,9 @@ async def test_get_exchange_rate_historical_minutes(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_get_news_success(monkeypatch):
-    async def mock_fetch_top_news(client, city, country=None, limit=10):
+    async def mock_fetch_top_news(client, city=None, state=None, country=None, limit=10):
         assert city == "Dublin"
+        assert state is None
         assert country == "Ireland"
         assert limit == 5
         return [
@@ -216,7 +217,36 @@ async def test_get_news_missing_city():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/news")
 
-    assert response.status_code == 422
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_get_news_by_state_only(monkeypatch):
+    async def mock_fetch_top_news(client, city=None, state=None, country=None, limit=10):
+        assert city is None
+        assert state == "California"
+        assert country == "United States"
+        assert limit == 3
+        return [
+            {
+                "title": "Headline 2",
+                "url": "https://example.com/2",
+                "source": "News",
+                "published_at": "2026-03-30T11:00:00Z",
+            }
+        ]
+
+    monkeypatch.setattr(news_api, "fetch_top_news", mock_fetch_top_news)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/news", params={"state": "California", "country": "United States", "limit": 3})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["city"] is None
+    assert data["state"] == "California"
+    assert data["country"] == "United States"
+    assert data["count"] == 1
 
 
 @pytest.mark.asyncio

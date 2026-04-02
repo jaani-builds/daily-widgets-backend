@@ -9,13 +9,17 @@ router = APIRouter()
 
 @router.get("/news")
 async def get_news(
-    city: str = Query(..., description="City name"),
+    city: Optional[str] = Query(None, description="City name"),
+    state: Optional[str] = Query(None, description="State or region name"),
     country: Optional[str] = Query(None, description="Country name"),
     limit: int = Query(10, ge=1, le=20, description="Maximum number of articles"),
 ):
+    if not any(value and value.strip() for value in (city, state, country)):
+        raise HTTPException(status_code=400, detail="At least one of city, state, or country must be provided")
+
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            articles = await fetch_top_news(client, city=city, country=country, limit=limit)
+            articles = await fetch_top_news(client, city=city, state=state, country=country, limit=limit)
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="News provider timed out") from None
     except httpx.HTTPStatusError as exc:
@@ -25,6 +29,7 @@ async def get_news(
 
     return {
         "city": city,
+        "state": state,
         "country": country,
         "count": len(articles),
         "articles": articles,

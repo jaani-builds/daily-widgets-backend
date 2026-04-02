@@ -6,6 +6,7 @@ A small FastAPI service with three endpoints:
 - `GET /weather?city=<name>`: Returns current weather for a city using Open-Meteo.
 - `GET /exchange-rates?base=USD&target=EUR`: Returns the latest exchange rate.
 - `GET /exchange-rates?base=USD&target=EUR&period_value=7&period_unit=days`: Returns historical exchange-rate data for a trailing period.
+- `GET /news?city=<name>&state=<name>&country=<name>`: Returns latest news for the provided location context.
 
 Live deployment:
 
@@ -93,6 +94,35 @@ Response example:
 }
 ```
 
+### `GET /news?city=Dublin&country=Ireland`
+
+At least one of `city`, `state`, or `country` is required.
+
+Response example:
+
+```json
+{
+  "city": "Dublin",
+  "state": null,
+  "country": "Ireland",
+  "count": 2,
+  "articles": [
+    {
+      "title": "Headline 1",
+      "url": "https://example.com/1",
+      "source": "IE",
+      "published_at": "2026-04-02T10:00:00Z"
+    },
+    {
+      "title": "Headline 2",
+      "url": "https://example.com/2",
+      "source": "IE",
+      "published_at": "2026-04-02T09:30:00Z"
+    }
+  ]
+}
+```
+
 ## Run Locally (Without Docker)
 
 ```bash
@@ -107,6 +137,7 @@ Open:
 - `http://localhost:8000/weather?city=London`
 - `http://localhost:8000/exchange-rates?base=USD&target=EUR`
 - `http://localhost:8000/exchange-rates?base=USD&target=EUR&period_value=30&period_unit=days`
+- `http://localhost:8000/news?state=California&country=United%20States`
 
 ## Run With Docker
 
@@ -151,6 +182,7 @@ After deployment, use:
 - `https://daily-widgets-backend.onrender.com/weather?city=London`
 - `https://daily-widgets-backend.onrender.com/exchange-rates?base=USD&target=EUR`
 - `https://daily-widgets-backend.onrender.com/exchange-rates?base=USD&target=EUR&period_value=3&period_unit=months`
+- `https://daily-widgets-backend.onrender.com/news?city=Dublin&country=Ireland`
 - `https://daily-widgets-backend.onrender.com/docs`
 
 ## Notes
